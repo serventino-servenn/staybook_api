@@ -4,6 +4,7 @@ package com.staybook.api.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,6 +35,12 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReservationType type;
+
+    @Column
+    private LocalDate checkIn;
+
+    @Column
+    private LocalDate checkOut;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime reservedAt;
