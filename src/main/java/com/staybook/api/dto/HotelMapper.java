@@ -17,4 +17,14 @@ public class HotelMapper {
                hotel.getCreatedAt()
         );
     }
+
+  public Hotel toEntity(CreateHotelRequest request) {
+        return Hotel.builder()
+                .name(request.name())
+                .description(request.description())
+                .address(request.address())
+                .city(request.city())
+                .country(request.country())
+                .build();
+   }
 }
