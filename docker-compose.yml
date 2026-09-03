@@ -1,7 +1,7 @@
 
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:17
     container_name: staybook_api
     environment:
       POSTGRES_USER: dev_user
