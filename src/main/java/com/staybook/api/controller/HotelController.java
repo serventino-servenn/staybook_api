@@ -1,6 +1,8 @@
 package com.staybook.api.controller;
 
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,4 +47,13 @@ public class HotelController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
+
+    @GetMapping
+    public ResponseEntity<List<HotelResponse>> getAllHotels() {
+        List<Hotel> hotels = hotelService.getAllHotels();
+        List<HotelResponse> responses = hotels.stream()
+                .map(hotelMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(responses);
+    }
 }

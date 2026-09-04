@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -149,5 +150,73 @@ public class HotelControllerTest {
             verify(hotelService).getHotelById(999L);
     }
     
+    @Test
+     void shouldReturnAllHotels() throws Exception {
+        Hotel hotel1 = Hotel.builder()
+            .name("Grand Hotel")
+            .description("A luxury hotel")
+            .address("123 Main Street")
+            .city("Atlanta")
+            .country("USA")
+            .build();
+
+        Hotel hotel2 = Hotel.builder()
+            .name("Ocean View Resort")
+            .description("A beachfront resort")
+            .address("456 Ocean Drive")
+            .city("Miami")
+            .country("USA")
+            .build();
+
+        when(hotelService.getAllHotels()).thenReturn(List.of(hotel1, hotel2));
+
+        HotelResponse response1 = new HotelResponse(
+            1L,
+            "Grand Hotel",
+            "A luxury hotel",
+            "123 Main Street",
+            "Atlanta",
+            "USA",
+            true,
+            LocalDateTime.now()
+        );
+
+        HotelResponse response2 = new HotelResponse(
+            2L,
+            "Ocean View Resort",
+            "A beachfront resort",
+            "456 Ocean Drive",
+            "Miami",
+            "USA",
+            true,
+            LocalDateTime.now()
+        );
+
+        when(hotelMapper.toResponse(hotel1)).thenReturn(response1);
+        when(hotelMapper.toResponse(hotel2)).thenReturn(response2);
+
+        mockMvc.perform(get("/api/hotels"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Grand Hotel"))
+                .andExpect(jsonPath("$[1].name").value("Ocean View Resort"));
+
+        verify(hotelService).getAllHotels();
+        verify(hotelMapper).toResponse(hotel1);
+        verify(hotelMapper).toResponse(hotel2);
+     }
+
+    @Test
+    void shouldReturnEmptyListWhenNoHotelsExist() throws Exception {
+        when(hotelService.getAllHotels()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/hotels"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(hotelService).getAllHotels();
+        verify(hotelMapper, never()).toResponse(any());
+
+    } 
 
 }
