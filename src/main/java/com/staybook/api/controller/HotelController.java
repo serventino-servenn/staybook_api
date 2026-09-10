@@ -13,8 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.staybook.api.dto.CreateHotelRequest;
 import com.staybook.api.dto.HotelMapper;
 import com.staybook.api.dto.HotelResponse;
+import com.staybook.api.dto.mapper.RoomMapper;
+import com.staybook.api.dto.room.RoomResponse;
 import com.staybook.api.entity.Hotel;
+import com.staybook.api.entity.Room;
 import com.staybook.api.service.HotelService;
+import com.staybook.api.service.RoomService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +32,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class HotelController {
 
     private final HotelService hotelService;
+    private final RoomService roomService;
     private final HotelMapper hotelMapper;
+    private final RoomMapper roomMapper;
     
     @GetMapping("/{hotelId}")
     public ResponseEntity<HotelResponse> getHotelById(@PathVariable Long hotelId) {
@@ -54,6 +60,19 @@ public class HotelController {
         List<HotelResponse> responses = hotels.stream()
                 .map(hotelMapper::toResponse)
                 .toList();
+        return ResponseEntity.ok(responses);
+    }
+
+     @GetMapping("/{hotelId}/rooms")
+    public ResponseEntity<List<RoomResponse>> getRoomsByHotel(
+            @PathVariable Long hotelId) {
+
+        List<Room> rooms = roomService.getRoomsByHotel(hotelId);
+
+        List<RoomResponse> responses = rooms.stream()
+                .map(roomMapper::toResponse)
+                .toList();
+
         return ResponseEntity.ok(responses);
     }
 }
