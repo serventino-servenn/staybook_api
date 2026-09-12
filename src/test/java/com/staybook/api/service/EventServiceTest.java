@@ -1,6 +1,8 @@
 package com.staybook.api.service;
 
 
+import com.staybook.api.dto.event.CreateEventRequest;
+import com.staybook.api.dto.mapper.EventMapper;
 import com.staybook.api.entity.Event;
 import com.staybook.api.exception.ResourceNotFoundException;
 import com.staybook.api.repository.EventRepository;
@@ -25,10 +27,13 @@ class EventServiceTest {
     private EventRepository eventRepository;
 
     private EventService eventService;
+    
+    @Mock
+    private EventMapper eventMapper;
 
     @BeforeEach
     void setUp() {
-        eventService = new EventService(eventRepository);
+        eventService = new EventService(eventRepository, eventMapper);
     }
 
     @Test
@@ -40,11 +45,23 @@ class EventServiceTest {
                 .venue("Downtown Arena")
                 .build();
 
+        CreateEventRequest request = new CreateEventRequest(
+                event.getName(),
+                event.getDescription(),
+                event.getVenue(),
+                event.getEventDate(),
+                event.getCapacity(),
+                event.getPrice()
+        );
+
+        when(eventMapper.toEntity(request)).thenReturn(event);
         when(eventRepository.save(event)).thenReturn(event);
 
-        Event result = eventService.createEvent(event);
+        Event result = eventService.createEvent(request);
 
         assertThat(result).isEqualTo(event);
+        assertThat(event.getAvailableSeats()).isEqualTo(request.capacity());
+        verify(eventMapper).toEntity(request);
         verify(eventRepository).save(event);
     }
 
