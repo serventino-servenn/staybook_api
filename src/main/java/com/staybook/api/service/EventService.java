@@ -1,6 +1,8 @@
 package com.staybook.api.service;
 
 
+import com.staybook.api.dto.event.CreateEventRequest;
+import com.staybook.api.dto.mapper.EventMapper;
 import com.staybook.api.entity.Event;
 import com.staybook.api.exception.ResourceNotFoundException;
 import com.staybook.api.repository.EventRepository;
@@ -14,8 +16,11 @@ import java.util.List;
 public class EventService {
 
     private final EventRepository eventRepository;
+    private final EventMapper eventMapper;
 
-    public Event createEvent(Event event) {
+    public Event createEvent(CreateEventRequest request) {
+        Event event = eventMapper.toEntity(request);
+        event.setAvailableSeats(request.capacity());
         return eventRepository.save(event);
     }
 
