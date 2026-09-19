@@ -12,6 +12,8 @@ import com.staybook.api.repository.ReservationRepository;
 import com.staybook.api.repository.RoomRepository;
 import com.staybook.api.repository.UserRepository;
 import com.staybook.api.entity.RoomStatus;
+import com.staybook.api.dto.reservation.CreateEventReservationRequest;
+import com.staybook.api.dto.reservation.CreateHotelReservationRequest;
 import com.staybook.api.entity.Event;
 import com.staybook.api.entity.EventStatus;
 import com.staybook.api.repository.EventRepository;
@@ -32,30 +34,30 @@ public class ReservationService {
     private final EventRepository eventRepository;
 
     public Reservation createHotelReservation(
-        Long userId, Long roomId,
-        LocalDate checkIn,
-        LocalDate checkOut
+        CreateHotelReservationRequest request
     ) {
 
-        if (checkIn == null || checkOut == null) {
+        if (request.checkIn() == null || request.checkOut() == null) {
             throw new BusinessRuleException(
                     "Check-in and check-out dates are required."
             );
         }
 
-        if (!checkOut.isAfter(checkIn)) {
+        if (!request.checkOut().isAfter(request.checkIn())) {
             throw new BusinessRuleException(
                     "Check-out date must be after check-in date."
             );
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(request.userId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User not found with id: " + userId));
+                        new ResourceNotFoundException(
+                                "User not found with id: " + request.userId()));
 
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findById(request.roomId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Room not found with id: " + roomId));
+                        new ResourceNotFoundException(
+                                "Room not found with id: " + request.roomId()));
 
         if (room.getStatus() != RoomStatus.AVAILABLE) {
             throw new BusinessRuleException(
@@ -64,26 +66,30 @@ public class ReservationService {
         }
 
         Reservation reservation = Reservation.builder()
-            .user(user)
-            .room(room)
-            .type(ReservationType.HOTEL)
-            .checkIn(checkIn)
-            .checkOut(checkOut)
-            .status(ReservationStatus.CONFIRMED)
-            .build();
+                .user(user)
+                .room(room)
+                .type(ReservationType.HOTEL)
+                .checkIn(request.checkIn())
+                .checkOut(request.checkOut())
+                .status(ReservationStatus.CONFIRMED)
+                .build();
 
         return reservationRepository.save(reservation);
     }
 
-    public Reservation createEventReservation(Long userId, Long eventId) {
+    public Reservation createEventReservation(
+        CreateEventReservationRequest request
+    ) {
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(request.userId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User not found with id: " + userId));
+                        new ResourceNotFoundException(
+                                "User not found with id: " + request.userId()));
 
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findById(request.eventId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Event not found with id: " + eventId));
+                        new ResourceNotFoundException(
+                                "Event not found with id: " + request.eventId()));
 
         if (event.getStatus() == EventStatus.CANCELLED) {
             throw new BusinessRuleException(
@@ -102,7 +108,6 @@ public class ReservationService {
                     "Event has no available seats."
             );
         }
-
 
         Reservation reservation = Reservation.builder()
                 .user(user)
