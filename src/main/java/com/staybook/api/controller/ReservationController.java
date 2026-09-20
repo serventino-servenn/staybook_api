@@ -29,12 +29,8 @@ public class ReservationController {
     public ResponseEntity<ReservationResponse> createHotelReservation(
             @Valid @RequestBody CreateHotelReservationRequest request) {
 
-        Reservation reservation = reservationService.createHotelReservation(
-                request.userId(),
-                request.roomId(),
-                request.checkIn(),
-                request.checkOut()
-        );
+        Reservation reservation =
+                reservationService.createHotelReservation(request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(reservationMapper.toResponse(reservation));
@@ -44,10 +40,8 @@ public class ReservationController {
     public ResponseEntity<ReservationResponse> createEventReservation(
             @Valid @RequestBody CreateEventReservationRequest request) {
 
-        Reservation reservation = reservationService.createEventReservation(
-                request.userId(),
-                request.eventId()
-        );
+        Reservation reservation =
+                reservationService.createEventReservation(request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(reservationMapper.toResponse(reservation));
