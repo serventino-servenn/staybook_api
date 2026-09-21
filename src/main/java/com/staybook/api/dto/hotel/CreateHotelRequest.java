@@ -1,4 +1,4 @@
-package com.staybook.api.dto;
+package com.staybook.api.dto.hotel;
 
 import jakarta.validation.constraints.NotBlank;
 

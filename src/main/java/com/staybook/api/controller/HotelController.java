@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.staybook.api.dto.CreateHotelRequest;
-import com.staybook.api.dto.HotelMapper;
-import com.staybook.api.dto.HotelResponse;
+import com.staybook.api.dto.hotel.CreateHotelRequest;
+import com.staybook.api.dto.hotel.HotelResponse;
+import com.staybook.api.dto.mapper.HotelMapper;
 import com.staybook.api.dto.mapper.RoomMapper;
 import com.staybook.api.dto.room.RoomResponse;
 import com.staybook.api.entity.Hotel;
