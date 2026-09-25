@@ -14,10 +14,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.staybook.api.dto.auth.CreateUserRequest;
+import com.staybook.api.dto.auth.LoginRequest;
 import com.staybook.api.entity.Role;
 import com.staybook.api.entity.User;
 import com.staybook.api.exception.BusinessRuleException;
 import com.staybook.api.repository.UserRepository;
+import com.staybook.api.security.JwtService;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
+
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -30,6 +38,12 @@ class AuthServiceTest {
 
     @InjectMocks
     private AuthService authService;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private JwtService jwtService;
 
     @Test
     void shouldRegisterCustomer() {
@@ -103,5 +117,68 @@ class AuthServiceTest {
 
         verify(userRepository, never())
                 .save(any(User.class));
+    }
+
+    @Test
+    void shouldLoginSuccessfully() {
+
+        LoginRequest request =
+                new LoginRequest(
+                        "test@example.com",
+                        "password123"
+                );
+
+        UserDetails userDetails =
+                org.springframework.security.core.userdetails.User
+                        .withUsername("test@example.com")
+                        .password("encoded-password")
+                        .roles("CUSTOMER")
+                        .build();
+
+        Authentication authentication = mock(Authentication.class);
+
+        when(authenticationManager.authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ))).thenReturn(authentication);
+
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+
+        when(jwtService.generateToken(userDetails))
+                .thenReturn("test-jwt-token");
+
+        String token = authService.login(request);
+
+        assertThat(token).isEqualTo("test-jwt-token");
+
+        verify(authenticationManager).authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ));
+
+        verify(jwtService).generateToken(userDetails);
+    }
+
+    @Test
+    void shouldRejectInvalidLogin() {
+
+        LoginRequest request =
+                new LoginRequest(
+                        "test@example.com",
+                        "wrong-password"
+                );
+
+        when(authenticationManager.authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ))).thenThrow(
+                new BadCredentialsException("Invalid credentials")
+        );
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(BadCredentialsException.class);
+
+        verify(authenticationManager).authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ));
+
+        verifyNoInteractions(jwtService);
     }
 }

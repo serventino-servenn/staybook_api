@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.staybook.api.dto.auth.CreateUserRequest;
+import com.staybook.api.dto.auth.LoginRequest;
+import com.staybook.api.dto.auth.LoginResponse;
 import com.staybook.api.dto.auth.UserResponse;
 import com.staybook.api.dto.mapper.AuthMapper;
 import com.staybook.api.entity.User;
@@ -33,5 +35,16 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(authMapper.toResponse(user));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request) {
+
+        String token = authService.login(request);
+
+        return ResponseEntity.ok(
+                new LoginResponse(token)
+        );
     }
 }

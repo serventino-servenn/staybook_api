@@ -1,5 +1,6 @@
 package com.staybook.api.controller;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import com.staybook.api.dto.auth.CreateUserRequest;
+import com.staybook.api.dto.auth.LoginRequest;
 import com.staybook.api.dto.auth.UserResponse;
 import com.staybook.api.dto.mapper.AuthMapper;
 import com.staybook.api.entity.Role;
@@ -144,4 +146,41 @@ class AuthControllerTest {
 
         verifyNoInteractions(authService);
     }
+
+    @Test
+     void shouldLoginSuccessfully() throws Exception {
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn("test-jwt-token");
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                                "email": "test@example.com",
+                                "password": "password123"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token")
+                        .value("test-jwt-token"));
+
+        verify(authService).login(any(LoginRequest.class));
+     }
+
+     @Test
+     void shouldRejectInvalidLoginRequest() throws Exception {
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                                "email": "not-an-email",
+                                "password": ""
+                        }
+                        """))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
+      }
 }

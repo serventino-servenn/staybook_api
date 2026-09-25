@@ -23,6 +23,8 @@ public class JwtService {
     @Value("${app.jwt.expiration}")
     private long expiration;
 
+   
+
     public String generateToken(UserDetails userDetails) {
 
         Date now = new Date();
