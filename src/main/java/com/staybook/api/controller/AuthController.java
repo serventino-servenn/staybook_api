@@ -11,7 +11,7 @@ import com.staybook.api.dto.auth.CreateUserRequest;
 import com.staybook.api.dto.auth.UserResponse;
 import com.staybook.api.dto.mapper.AuthMapper;
 import com.staybook.api.entity.User;
-import com.staybook.api.service.service.AuthService;
+import com.staybook.api.service.AuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

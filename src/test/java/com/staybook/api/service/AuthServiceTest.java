@@ -18,7 +18,6 @@ import com.staybook.api.entity.Role;
 import com.staybook.api.entity.User;
 import com.staybook.api.exception.BusinessRuleException;
 import com.staybook.api.repository.UserRepository;
-import com.staybook.api.service.service.AuthService;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {

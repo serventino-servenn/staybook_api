@@ -1,4 +1,4 @@
-package com.staybook.api.service.service;
+package com.staybook.api.service;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

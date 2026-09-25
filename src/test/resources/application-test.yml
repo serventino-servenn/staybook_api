@@ -1,0 +1,4 @@
+app:
+  jwt:
+    secret: Xu78lkCybX9pO8c8HXGdeNeTZC87KT1JvrOQ9hQCh10=
+    expiration: 3600000
