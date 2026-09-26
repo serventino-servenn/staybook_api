@@ -13,7 +13,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: chekout code
 
       uses: actions/checkout@v3
     - name: Set up Java
@@ -24,5 +23,5 @@ jobs:
         cache: maven
       
     - name: Run Tests 
-      run: ./mvnw test
+      run: ./mvnw clean test -Dspring.profiles.active=test
  
