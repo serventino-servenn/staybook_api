@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-
+import org.springframework.test.context.ActiveProfiles;
 
 import com.staybook.api.entity.User;
 import com.staybook.api.repository.UserRepository;
@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
+@ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 class UserRepositoryTest {
 

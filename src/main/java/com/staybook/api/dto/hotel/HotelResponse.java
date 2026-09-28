@@ -1,4 +1,4 @@
-package com.staybook.api.dto;
+package com.staybook.api.dto.hotel;
 
 import java.time.LocalDateTime;
 

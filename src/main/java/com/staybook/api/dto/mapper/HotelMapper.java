@@ -1,6 +1,9 @@
-package com.staybook.api.dto;
+package com.staybook.api.dto.mapper;
 
 import org.springframework.stereotype.Component;
+
+import com.staybook.api.dto.hotel.CreateHotelRequest;
+import com.staybook.api.dto.hotel.HotelResponse;
 import com.staybook.api.entity.Hotel;
 
 @Component

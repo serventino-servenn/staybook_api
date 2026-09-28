@@ -21,10 +21,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import com.staybook.api.StaybookApiApplication;
-
-
-import com.staybook.api.dto.HotelMapper;
-import com.staybook.api.dto.HotelResponse;
+import com.staybook.api.dto.hotel.HotelResponse;
+import com.staybook.api.dto.mapper.HotelMapper;
 import com.staybook.api.dto.mapper.RoomMapper;
 import com.staybook.api.dto.room.RoomResponse;
 import com.staybook.api.entity.Hotel;
