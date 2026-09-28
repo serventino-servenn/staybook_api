@@ -20,8 +20,8 @@ public class JwtService {
     @Value("${app.jwt.secret}")
     private String secret;
 
-    @Value("${app.jwt.expiration}")
-    private long expiration;
+    @Value("${app.jwt.expiration-ms}")
+    private long expirationMs;
 
    
 
@@ -32,7 +32,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + expiration))
+                .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(getSigningKey())
                 .compact();
     }
