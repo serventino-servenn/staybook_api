@@ -17,6 +17,8 @@ import com.staybook.api.dto.auth.UserResponse;
 import com.staybook.api.dto.mapper.AuthMapper;
 import com.staybook.api.entity.Role;
 import com.staybook.api.entity.User;
+import com.staybook.api.security.CustomUserDetailsService;
+import com.staybook.api.security.JwtService;
 import com.staybook.api.service.AuthService;
 
 import org.springframework.http.MediaType;
@@ -41,6 +43,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthMapper authMapper;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService userDetailsService;
 
     @Test
     void shouldRegisterUser() throws Exception {

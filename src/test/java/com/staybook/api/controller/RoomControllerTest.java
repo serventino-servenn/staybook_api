@@ -25,6 +25,8 @@ import com.staybook.api.entity.Room;
 import com.staybook.api.entity.RoomStatus;
 import com.staybook.api.entity.RoomType;
 import com.staybook.api.exception.ResourceNotFoundException;
+import com.staybook.api.security.CustomUserDetailsService;
+import com.staybook.api.security.JwtService;
 import com.staybook.api.service.RoomService;
 
 @WebMvcTest(RoomController.class)
@@ -38,6 +40,12 @@ public class RoomControllerTest {
 
     @MockitoBean 
     private RoomMapper roomMapper;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService userDetailsService;
 
     @Test
     void shouldReturnRoomWhenRoomExists() throws Exception {
