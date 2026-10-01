@@ -35,9 +35,55 @@ class SecurityIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+   
     @Test
     void shouldRejectRequestWithoutToken() throws Exception {
         mockMvc.perform(get("/api/hotels"))
+                .andExpect(status().isOk());
+    }
+    
+
+    @Test
+    void shouldAllowPublicAccessToEvents() throws Exception {
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRejectCustomerFromCreatingRoom() throws Exception {
+
+        String token = createTestUserAndGetToken(
+                "room-customer@test.com",
+                Role.CUSTOMER
+        );
+
+        mockMvc.perform(post("/api/rooms")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "hotelId": 1,
+                    "roomNumber": "101",
+                    "roomType": "SINGLE",
+                    "pricePerNight": 100.00,
+                    "capacity": 2
+                }
+                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldRejectHotelReservationWithoutToken() throws Exception {
+        mockMvc.perform(post("/api/reservations/hotel")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "userId": 1,
+                            "roomId": 1,
+                            "checkIn": "2026-10-10",
+                            "checkOut": "2026-10-12"
+                        }
+                        """))
                 .andExpect(status().isUnauthorized());
     }
 
