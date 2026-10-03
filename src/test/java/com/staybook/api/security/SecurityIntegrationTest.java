@@ -7,8 +7,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.staybook.api.entity.Hotel;
 import com.staybook.api.entity.Role;
 import com.staybook.api.entity.User;
+import com.staybook.api.repository.HotelRepository;
 import com.staybook.api.repository.UserRepository;
 
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,9 +37,14 @@ class SecurityIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private HotelRepository hotelRepository;
+
    
+ 
+
     @Test
-    void shouldRejectRequestWithoutToken() throws Exception {
+    void shouldAllowPublicAccessToHotels() throws Exception {
         mockMvc.perform(get("/api/hotels"))
                 .andExpect(status().isOk());
     }
@@ -70,6 +77,39 @@ class SecurityIntegrationTest {
                 }
                 """))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdminToCreateRoom() throws Exception {
+
+        String token = createTestUserAndGetToken(
+                "room-admin@test.com",
+                Role.ADMIN
+        );
+
+        Hotel hotel = Hotel.builder()
+                .name("Room Test Hotel")
+                .description("Hotel for room security test")
+                .address("123 Test Street")
+                .city("Atlanta")
+                .country("USA")
+                .build();
+
+        Hotel savedHotel = hotelRepository.save(hotel);
+
+        mockMvc.perform(post("/api/rooms")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "hotelId": %d,
+                    "roomNumber": "101",
+                    "roomType": "SINGLE",
+                    "pricePerNight": 100.00,
+                    "capacity": 2
+                }
+                """.formatted(savedHotel.getId())))
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -155,5 +195,53 @@ class SecurityIntegrationTest {
                 .build();
 
         return jwtService.generateToken(userDetails);
+    }
+
+    @Test
+    void shouldRejectCustomerFromCreatingEvent() throws Exception {
+
+        String token = createTestUserAndGetToken(
+                "event-customer@test.com",
+                Role.CUSTOMER
+        );
+
+        mockMvc.perform(post("/api/events")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "name": "Customer Test Event",
+                    "description": "Event creation security test",
+                    "venue": "Test Venue",
+                    "eventDate": "2026-12-15T19:00:00",
+                    "capacity": 100,
+                    "price": 50.00
+                }
+                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdminToCreateEvent() throws Exception {
+
+        String token = createTestUserAndGetToken(
+                "event-admin@test.com",
+                Role.ADMIN
+        );
+
+        mockMvc.perform(post("/api/events")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "name": "Admin Test Event",
+                    "description": "Event created by admin",
+                    "venue": "Test Venue",
+                    "eventDate": "2026-12-15T19:00:00",
+                    "capacity": 100,
+                    "price": 50.00
+                }
+                """))
+                .andExpect(status().isCreated());
     }
 }
