@@ -3,9 +3,11 @@ package com.staybook.api.service;
 import com.staybook.api.entity.Reservation;
 import com.staybook.api.entity.ReservationStatus;
 import com.staybook.api.entity.ReservationType;
+import com.staybook.api.entity.Role;
 import com.staybook.api.entity.Room;
 import com.staybook.api.entity.User;
 import com.staybook.api.exception.BusinessRuleException;
+import com.staybook.api.exception.ForbiddenException;
 import com.staybook.api.exception.ResourceNotFoundException;
 import com.staybook.api.repository.EventRepository;
 import com.staybook.api.repository.ReservationRepository;
@@ -34,7 +36,7 @@ public class ReservationService {
     private final EventRepository eventRepository;
 
     public Reservation createHotelReservation(
-        CreateHotelReservationRequest request
+        CreateHotelReservationRequest request, String email
     ) {
 
         if (request.checkIn() == null || request.checkOut() == null) {
@@ -49,10 +51,10 @@ public class ReservationService {
             );
         }
 
-        User user = userRepository.findById(request.userId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id: " + request.userId()));
+        User user = userRepository.findByEmail(email)
+        .orElseThrow(() ->
+                new ResourceNotFoundException(
+                        "User not found with email: " + email));
 
         Room room = roomRepository.findById(request.roomId())
                 .orElseThrow(() ->
@@ -78,13 +80,13 @@ public class ReservationService {
     }
 
     public Reservation createEventReservation(
-        CreateEventReservationRequest request
+        CreateEventReservationRequest request,String email
     ) {
 
-        User user = userRepository.findById(request.userId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id: " + request.userId()));
+       User user = userRepository.findByEmail(email)
+        .orElseThrow(() ->
+                new ResourceNotFoundException(
+                        "User not found with email: " + email));
 
         Event event = eventRepository.findById(request.eventId())
                 .orElseThrow(() ->
@@ -119,20 +121,42 @@ public class ReservationService {
         return reservationRepository.save(reservation);
     }
 
-    public Reservation getReservationById(Long id) {
-        return reservationRepository.findById(id)
+   public Reservation getReservationById(Long id, String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with email: " + email));
+
+        Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Reservation not found with id: " + id));
+
+        if (user.getRole() != Role.ADMIN
+        && !reservation.getUser().getId().equals(user.getId())) {
+
+                throw new ForbiddenException(
+                        "You are not authorized to access this reservation."
+                );
+        }
+
+        return reservation;
     }
 
-    public List<Reservation> getReservationsByUser(Long userId) {
-         return reservationRepository.findByUserId(userId);
+    public List<Reservation> getReservationsByUser(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with email: " + email));
+
+        return reservationRepository.findByUserId(user.getId());
     }
 
-    public Reservation cancelReservation(Long reservationId) {
+    public Reservation cancelReservation(Long reservationId,String email) {
 
-        Reservation reservation = getReservationById(reservationId);
+        Reservation reservation = getReservationById(reservationId,email);
 
         if (reservation.getStatus() == ReservationStatus.CANCELLED) {
             throw new BusinessRuleException(
