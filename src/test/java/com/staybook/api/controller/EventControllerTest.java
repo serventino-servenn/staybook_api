@@ -7,7 +7,8 @@ import com.staybook.api.dto.mapper.EventMapper;
 import com.staybook.api.entity.Event;
 import com.staybook.api.entity.EventStatus;
 import com.staybook.api.exception.ResourceNotFoundException;
-
+import com.staybook.api.security.CustomUserDetailsService;
+import com.staybook.api.security.JwtService;
 import com.staybook.api.service.EventService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,12 @@ class EventControllerTest {
 
     @MockitoBean
     private EventMapper eventMapper;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService userDetailsService;
 
     @Test
     void shouldCreateEvent() throws Exception {

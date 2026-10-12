@@ -51,4 +51,36 @@ public class GlobalExceptionHandler {
             .body(errorResponse);
 
     }
+
+    @ExceptionHandler(BusinessRuleException.class)
+     public ResponseEntity<ErrorResponse> handleBusinessRuleException(
+                BusinessRuleException ex) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                null,
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
+     }
+
+     @ExceptionHandler(ForbiddenException.class)
+     public ResponseEntity<ErrorResponse> handleForbiddenException(
+                ForbiddenException ex) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                ex.getMessage(),
+                null,
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(errorResponse);
+    }
 }
