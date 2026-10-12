@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -11,16 +12,35 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Test
 
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: staybook_db
+          POSTGRES_USER: dev_user
+          POSTGRES_PASSWORD: dev_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U dev_user -d staybook_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-    - name: Set up Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
-      
-    - name: Run Tests 
-      run: ./mvnw clean test -Dspring.profiles.active=test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Tests
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5433/staybook_db
+          SPRING_DATASOURCE_USERNAME: dev_user
+          SPRING_DATASOURCE_PASSWORD: dev_password
+        run: ./mvnw clean test -Dspring.profiles.active=test
