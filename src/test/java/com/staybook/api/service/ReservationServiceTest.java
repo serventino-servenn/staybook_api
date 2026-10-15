@@ -108,8 +108,16 @@ class ReservationServiceTest {
        when(userRepository.findByEmail("john@example.com"))
         .thenReturn(Optional.of(user));
 
-        when(roomRepository.findById(request.roomId()))
-                .thenReturn(Optional.of(room));
+        when(roomRepository.findByIdForUpdate(request.roomId()))
+        .thenReturn(Optional.of(room));
+
+        when(reservationRepository.existsOverlappingReservation(
+                request.roomId(),
+                ReservationType.HOTEL,
+                ReservationStatus.CANCELLED,
+                request.checkIn(),
+                request.checkOut()
+        )).thenReturn(false);
 
         when(reservationRepository.save(any(Reservation.class)))
                 .thenReturn(reservation);
@@ -129,8 +137,15 @@ class ReservationServiceTest {
         assertThat(result.getCheckOut()).isEqualTo(request.checkOut());
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(roomRepository).findById(request.roomId());
         verify(reservationRepository).save(any(Reservation.class));
+        verify(roomRepository).findByIdForUpdate(request.roomId());
+        verify(reservationRepository).existsOverlappingReservation(
+                request.roomId(),
+                ReservationType.HOTEL,
+                ReservationStatus.CANCELLED,
+                request.checkIn(),
+                request.checkOut()
+        );
     }
 
      @Test
@@ -166,12 +181,13 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(eventRepository.findById(request.eventId()))
+        when(eventRepository.findByIdForUpdate(request.eventId()))
                 .thenReturn(Optional.of(event));
 
         when(reservationRepository.save(any(Reservation.class)))
                 .thenReturn(reservation);
 
+                int initialAvailableSeats = event.getAvailableSeats();
         Reservation result =
                 reservationService.createEventReservation(
                         request,
@@ -185,8 +201,11 @@ class ReservationServiceTest {
         assertThat(result.getEvent()).isEqualTo(event);
         assertThat(result.getRoom()).isNull();
 
+        assertThat(event.getAvailableSeats())
+        .isEqualTo(initialAvailableSeats - 1);
+
         verify(userRepository).findByEmail("john@example.com");
-        verify(eventRepository).findById(request.eventId());
+        verify(eventRepository).findByIdForUpdate(request.eventId());
         verify(reservationRepository).save(any(Reservation.class));
     }
 
@@ -211,7 +230,7 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(roomRepository.findById(request.roomId()))
+        when(roomRepository.findByIdForUpdate(request.roomId()))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
@@ -220,7 +239,7 @@ class ReservationServiceTest {
                 .hasMessage("Room not found with id: 1");
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(roomRepository).findById(request.roomId());
+        verify(roomRepository).findByIdForUpdate(request.roomId());
     }
 
     @Test
@@ -253,7 +272,7 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(roomRepository.findById(request.roomId()))
+        when(roomRepository.findByIdForUpdate(request.roomId()))
                 .thenReturn(Optional.of(room));
 
         assertThatThrownBy(() ->
@@ -262,7 +281,7 @@ class ReservationServiceTest {
                 .hasMessage("Room is not available for reservation.");
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(roomRepository).findById(request.roomId());
+        verify(roomRepository).findByIdForUpdate(request.roomId());
 
         verify(reservationRepository, never())
             .save(any(Reservation.class));
@@ -291,7 +310,7 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(eventRepository.findById(request.eventId()))
+        when(eventRepository.findByIdForUpdate(request.eventId()))
                 .thenReturn(Optional.of(event));
 
         assertThatThrownBy(() ->
@@ -300,7 +319,7 @@ class ReservationServiceTest {
                 .hasMessage("Cannot reserve a cancelled event.");
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(eventRepository).findById(request.eventId());
+        verify(eventRepository).findByIdForUpdate(request.eventId());
         verify(reservationRepository, never()).save(any(Reservation.class));
     }
 
@@ -325,7 +344,7 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(eventRepository.findById(request.eventId()))
+        when(eventRepository.findByIdForUpdate(request.eventId()))
                 .thenReturn(Optional.of(event));
 
         assertThatThrownBy(() ->
@@ -334,7 +353,7 @@ class ReservationServiceTest {
                 .hasMessage("Event has no available seats.");
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(eventRepository).findById(request.eventId());
+        verify(eventRepository).findByIdForUpdate(request.eventId());
         verify(reservationRepository, never()).save(any(Reservation.class));
     }
 
@@ -416,7 +435,7 @@ class ReservationServiceTest {
                         "john@example.com"
                 ))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessage("You are not authorized to access this reservation.");
+                .hasMessage("You are not allowed to access this reservation.");
 
         verify(userRepository).findByEmail("john@example.com");
         verify(reservationRepository).findById(1L);
@@ -453,19 +472,20 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(customer));
 
-        when(reservationRepository.findById(1L))
+        when(reservationRepository.findByIdForUpdate(1L))
                 .thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() ->
                 reservationService.cancelReservation(
+
                         1L,
                         "john@example.com"
                 ))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessage("You are not authorized to access this reservation.");
+                .hasMessage("You are not allowed to access this reservation.");
 
-        verify(userRepository).findByEmail("john@example.com");
-        verify(reservationRepository).findById(1L);
+        // verify(userRepository).findByEmail("john@example.com");
+        verify(reservationRepository).findByIdForUpdate(1L);
         verify(reservationRepository, never()).save(any(Reservation.class));
      }
 
@@ -493,7 +513,7 @@ class ReservationServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Reservation not found with id: 999");
 
-        verify(reservationRepository).findById(reservationId);
+        verify(reservationRepository).findById(999L);
     }
 
     @Test
@@ -560,7 +580,7 @@ class ReservationServiceTest {
         .status(ReservationStatus.CANCELLED)
         .build();
 
-        when(reservationRepository.findById(reservationId))
+        when(reservationRepository.findByIdForUpdate(reservationId))
                 .thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() ->
@@ -568,7 +588,7 @@ class ReservationServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Reservation is already cancelled.");
 
-        verify(reservationRepository).findById(reservationId);
+        verify(reservationRepository).findByIdForUpdate(reservationId);
         verify(reservationRepository, never()).save(reservation);
     }
 
@@ -595,7 +615,7 @@ class ReservationServiceTest {
                 .status(ReservationStatus.CONFIRMED)
                 .build();
 
-        when(reservationRepository.findById(reservationId))
+        when(reservationRepository.findByIdForUpdate(reservationId))
                 .thenReturn(Optional.of(reservation));
 
         when(reservationRepository.save(reservation))
@@ -607,7 +627,7 @@ class ReservationServiceTest {
         assertThat(result).isEqualTo(reservation);
         assertThat(result.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
 
-        verify(reservationRepository).findById(reservationId);
+        verify(reservationRepository).findByIdForUpdate(reservationId);
         verify(reservationRepository).save(reservation);
     }
 
@@ -624,10 +644,10 @@ class ReservationServiceTest {
         .active(true)
         .build();
 
-        when(userRepository.findByEmail("john@example.com"))
-                .thenReturn(Optional.of(user));
+        // when(userRepository.findByEmail("john@example.com"))
+        //         .thenReturn(Optional.of(user));
 
-        when(reservationRepository.findById(999L))
+        when(reservationRepository.findByIdForUpdate(999L))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
@@ -639,9 +659,150 @@ class ReservationServiceTest {
                 .hasMessage("Reservation not found with id: 999");
 
 
-        verify(reservationRepository).findById(reservationId);
+        verify(reservationRepository).findByIdForUpdate(999L);
         verify(reservationRepository, never()).save(any(Reservation.class));
     }
+
+
+    @Test
+    void shouldThrowExceptionWhenHotelReservationDatesOverlap() {
+        CreateHotelReservationRequest request =
+                new CreateHotelReservationRequest(
+                        1L,
+                        LocalDate.of(2026, 10, 11),
+                        LocalDate.of(2026, 10, 13)
+                );
+
+        User user = User.builder()
+                .id(1L)
+                .email("john@example.com")
+                .role(Role.CUSTOMER)
+                .active(true)
+                .build();
+
+        Room room = Room.builder()
+                .id(1L)
+                .roomNumber("101")
+                .roomType(RoomType.DOUBLE)
+                .pricePerNight(new BigDecimal("150.00"))
+                .capacity(2)
+                .status(RoomStatus.AVAILABLE)
+                .build();
+
+        when(userRepository.findByEmail("john@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(roomRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(room));
+
+        when(reservationRepository.existsOverlappingReservation(
+                1L,
+                ReservationType.HOTEL,
+                ReservationStatus.CANCELLED,
+                request.checkIn(),
+                request.checkOut()
+        )).thenReturn(true);
+
+        assertThatThrownBy(() ->
+                reservationService.createHotelReservation(
+                        request,
+                        "john@example.com"
+                ))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Room is already reserved for the selected dates.");
+
+        verify(reservationRepository, never())
+                .save(any(Reservation.class));
+     }
+
+
+
+     @Test
+     void shouldRestoreEventSeatWhenCancellingEventReservation() {
+        Long reservationId = 1L;
+
+        User user = User.builder()
+                .id(1L)
+                .email("john@example.com")
+                .role(Role.CUSTOMER)
+                .active(true)
+                .build();
+
+        Event event = Event.builder()
+                .id(1L)
+                .availableSeats(9)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .user(user)
+                .event(event)
+                .type(ReservationType.EVENT)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        when(userRepository.findByEmail("john@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(reservationRepository.findByIdForUpdate(reservationId))
+                .thenReturn(Optional.of(reservation));
+
+        when(reservationRepository.save(reservation))
+                .thenReturn(reservation);
+
+        Reservation result = reservationService.cancelReservation(
+                reservationId, "john@example.com"
+        );
+
+        assertThat(result.getStatus())
+                .isEqualTo(ReservationStatus.CANCELLED);
+        assertThat(event.getAvailableSeats()).isEqualTo(10);
+
+        verify(reservationRepository).save(reservation);
+     }
+
+     @Test
+        void shouldNotRestoreEventSeatWhenReservationIsAlreadyCancelled() {
+        Long reservationId = 1L;
+
+        User user = User.builder()
+                .id(1L)
+                .email("john@example.com")
+                .role(Role.CUSTOMER)
+                .active(true)
+                .build();
+
+        Event event = Event.builder()
+                .id(1L)
+                .availableSeats(10)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .user(user)
+                .event(event)
+                .type(ReservationType.EVENT)
+                .status(ReservationStatus.CANCELLED)
+                .build();
+
+        when(userRepository.findByEmail("john@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(reservationRepository.findByIdForUpdate(reservationId))
+                .thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() ->
+                reservationService.cancelReservation(
+                        reservationId, "john@example.com"
+                ))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Reservation is already cancelled.");
+
+        assertThat(event.getAvailableSeats()).isEqualTo(10);
+
+        verify(reservationRepository, never())
+                .save(any(Reservation.class));
+   }
 
 
     @Test
@@ -665,7 +826,8 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(eventRepository.findById(request.eventId()))
+        when(eventRepository.findByIdForUpdate
+                (request.eventId()))
                 .thenReturn(Optional.of(event));
 
         assertThatThrownBy(() ->
@@ -674,7 +836,7 @@ class ReservationServiceTest {
                 .hasMessage("Cannot reserve a completed event.");
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(eventRepository).findById(request.eventId());
+        verify(eventRepository).findByIdForUpdate(request.eventId());
         verifyNoInteractions(reservationRepository);
     }
 
@@ -732,7 +894,7 @@ class ReservationServiceTest {
         when(userRepository.findByEmail("john@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(eventRepository.findById(request.eventId()))
+        when(eventRepository.findByIdForUpdate(request.eventId()))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
@@ -741,7 +903,7 @@ class ReservationServiceTest {
                 .hasMessage("Event not found with id: 1");
 
         verify(userRepository).findByEmail("john@example.com");
-        verify(eventRepository).findById(request.eventId());
+        verify(eventRepository).findByIdForUpdate(request.eventId());
         verifyNoInteractions(reservationRepository);
     }
 

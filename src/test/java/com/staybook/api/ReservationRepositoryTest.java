@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +51,7 @@ class ReservationRepositoryTest {
 
     @Test
     void shouldSaveHotelReservation() {
-       
+
         Hotel hotel = Hotel.builder()
             .name("Grand Stay Hotel")
             .description("Test hotel")
@@ -121,6 +122,96 @@ class ReservationRepositoryTest {
         assertThat(saved.getReservedAt()).isNotNull();
     }
 
+
+    @Test
+    void shouldDetectOverlappingHotelReservation() {
+        User user = userRepository.save(createUser());
+        Hotel hotel = hotelRepository.save(createHotel());
+        Room room = roomRepository.save(createRoom(hotel));
+
+        Reservation existingReservation = Reservation.builder()
+                .user(user)
+                .room(room)
+                .type(ReservationType.HOTEL)
+                .checkIn(LocalDate.of(2026, 10, 10))
+                .checkOut(LocalDate.of(2026, 10, 12))
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        reservationRepository.save(existingReservation);
+
+        boolean hasOverlap =
+                reservationRepository.existsOverlappingReservation(
+                        room.getId(),
+                        ReservationType.HOTEL,
+                        ReservationStatus.CANCELLED,
+                        LocalDate.of(2026, 10, 11),
+                        LocalDate.of(2026, 10, 13)
+                );
+
+        assertThat(hasOverlap).isTrue();
+    }
+
+
+    @Test
+    void shouldNotDetectOverlapForBackToBackHotelReservations() {
+        User user = userRepository.save(createUser());
+        Hotel hotel = hotelRepository.save(createHotel());
+        Room room = roomRepository.save(createRoom(hotel));
+
+        Reservation existingReservation = Reservation.builder()
+                .user(user)
+                .room(room)
+                .type(ReservationType.HOTEL)
+                .checkIn(LocalDate.of(2026, 10, 10))
+                .checkOut(LocalDate.of(2026, 10, 12))
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        reservationRepository.save(existingReservation);
+
+        boolean hasOverlap =
+                reservationRepository.existsOverlappingReservation(
+                        room.getId(),
+                        ReservationType.HOTEL,
+                        ReservationStatus.CANCELLED,
+                        LocalDate.of(2026, 10, 12),
+                        LocalDate.of(2026, 10, 14)
+                );
+
+        assertThat(hasOverlap).isFalse();
+    }
+
+
+    @Test
+    void shouldIgnoreCancelledHotelReservationsWhenCheckingOverlap() {
+        User user = userRepository.save(createUser());
+        Hotel hotel = hotelRepository.save(createHotel());
+        Room room = roomRepository.save(createRoom(hotel));
+
+        Reservation cancelledReservation = Reservation.builder()
+                .user(user)
+                .room(room)
+                .type(ReservationType.HOTEL)
+                .checkIn(LocalDate.of(2026, 10, 10))
+                .checkOut(LocalDate.of(2026, 10, 12))
+                .status(ReservationStatus.CANCELLED)
+                .build();
+
+        reservationRepository.save(cancelledReservation);
+
+        boolean hasOverlap =
+                reservationRepository.existsOverlappingReservation(
+                        room.getId(),
+                        ReservationType.HOTEL,
+                        ReservationStatus.CANCELLED,
+                        LocalDate.of(2026, 10, 11),
+                        LocalDate.of(2026, 10, 13)
+                );
+
+        assertThat(hasOverlap).isFalse();
+    }
+
     private User createUser() {
         return User.builder()
                 .firstName("John")
@@ -154,4 +245,17 @@ class ReservationRepositoryTest {
                 .status(EventStatus.UPCOMING)
                 .build();
     }
+
+
+    private Hotel createHotel() {
+        return Hotel.builder()
+                .name("Test Hotel")
+                .description("Hotel used for repository integration tests")
+                .address("123 Test Street")
+                .city("Seattle")
+                .country("USA")
+                .active(true)
+                .build();
+    }
+
 }

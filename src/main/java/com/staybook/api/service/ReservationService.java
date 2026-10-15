@@ -18,10 +18,8 @@ import com.staybook.api.dto.reservation.CreateEventReservationRequest;
 import com.staybook.api.dto.reservation.CreateHotelReservationRequest;
 import com.staybook.api.entity.Event;
 import com.staybook.api.entity.EventStatus;
-import com.staybook.api.repository.EventRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
-
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -35,6 +33,7 @@ public class ReservationService {
     private final RoomRepository roomRepository;
     private final EventRepository eventRepository;
 
+    @Transactional
     public Reservation createHotelReservation(
         CreateHotelReservationRequest request, String email
     ) {
@@ -56,15 +55,31 @@ public class ReservationService {
                 new ResourceNotFoundException(
                         "User not found with email: " + email));
 
-        Room room = roomRepository.findById(request.roomId())
+        Room room = roomRepository.findByIdForUpdate(request.roomId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Room not found with id: " + request.roomId()));
 
+
         if (room.getStatus() != RoomStatus.AVAILABLE) {
-            throw new BusinessRuleException(
-                    "Room is not available for reservation."
-            );
+        throw new BusinessRuleException(
+                "Room is not available for reservation."
+        );
+        }
+
+        boolean hasOverlap =
+                reservationRepository.existsOverlappingReservation(
+                        request.roomId(),
+                        ReservationType.HOTEL,
+                        ReservationStatus.CANCELLED,
+                        request.checkIn(),
+                        request.checkOut()
+                );
+
+        if (hasOverlap) {
+        throw new BusinessRuleException(
+                "Room is already reserved for the selected dates."
+        );
         }
 
         Reservation reservation = Reservation.builder()
@@ -77,8 +92,10 @@ public class ReservationService {
                 .build();
 
         return reservationRepository.save(reservation);
+
     }
 
+    @Transactional
     public Reservation createEventReservation(
         CreateEventReservationRequest request,String email
     ) {
@@ -88,7 +105,7 @@ public class ReservationService {
                 new ResourceNotFoundException(
                         "User not found with email: " + email));
 
-        Event event = eventRepository.findById(request.eventId())
+        Event event = eventRepository.findByIdForUpdate(request.eventId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Event not found with id: " + request.eventId()));
@@ -111,6 +128,8 @@ public class ReservationService {
             );
         }
 
+        event.setAvailableSeats(event.getAvailableSeats() - 1);
+
         Reservation reservation = Reservation.builder()
                 .user(user)
                 .event(event)
@@ -118,8 +137,8 @@ public class ReservationService {
                 .status(ReservationStatus.CONFIRMED)
                 .build();
 
-        return reservationRepository.save(reservation);
-    }
+                return reservationRepository.save(reservation);
+   }
 
    public Reservation getReservationById(Long id, String email) {
 
@@ -137,7 +156,7 @@ public class ReservationService {
         && !reservation.getUser().getId().equals(user.getId())) {
 
                 throw new ForbiddenException(
-                        "You are not authorized to access this reservation."
+                        "You are not allowed to access this reservation."
                 );
         }
 
@@ -154,15 +173,37 @@ public class ReservationService {
         return reservationRepository.findByUserId(user.getId());
     }
 
+    @Transactional
     public Reservation cancelReservation(Long reservationId,String email) {
 
-        Reservation reservation = getReservationById(reservationId,email);
+        Reservation reservation = reservationRepository.findByIdForUpdate(reservationId)
+        .orElseThrow(() -> new ResourceNotFoundException(
+                "Reservation not found with id: " + reservationId
+        ));
+
+        User currentUser = userRepository.findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException(
+                "User not found with email: " + email
+        ));
+
+        if (currentUser.getRole() != Role.ADMIN
+                && !reservation.getUser().getId().equals(currentUser.getId())) {
+        throw new ForbiddenException(
+                "You are not allowed to access this reservation."
+        );
+        }
 
         if (reservation.getStatus() == ReservationStatus.CANCELLED) {
             throw new BusinessRuleException(
                     "Reservation is already cancelled."
             );
         }
+
+        if (reservation.getType() == ReservationType.EVENT) {
+                Event event = reservation.getEvent();
+                event.setAvailableSeats(event.getAvailableSeats() + 1);
+        }
+
 
         reservation.setStatus(ReservationStatus.CANCELLED);
 
