@@ -57,7 +57,7 @@ class EventControllerTest {
                 "Java Conference",
                 "A conference about Java and Spring Boot",
                 "Atlanta Convention Center",
-                LocalDateTime.of(2026, 10, 15, 18, 0),
+                LocalDateTime.of(2027, 10, 15, 18, 0),
                 200,
                 new BigDecimal("49.99")
         );

@@ -25,6 +25,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+
+import javax.crypto.SecretKey;
+import java.util.Date;
+
 import org.springframework.security.core.userdetails.UserDetails;
 // import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.http.MediaType;
@@ -50,6 +60,8 @@ class SecurityIntegrationTest {
     @Autowired
     private ReservationRepository reservationRepository;
 
+    @Value("${app.jwt.secret}")
+    private String secret;
 
 
 
@@ -632,6 +644,68 @@ class SecurityIntegrationTest {
                 .isEqualTo(ReservationStatus.CANCELLED);
     }
 
+
+   @Test
+   void shouldRejectRequestWithInvalidJwt() throws Exception {
+        mockMvc.perform(
+                get("/api/reservations")
+                        .header(
+                                HttpHeaders.AUTHORIZATION,
+                                "Bearer invalid-token"
+                        )
+        ).andExpect(status().isUnauthorized());
+   }
+
+    @Test
+     void shouldRejectRequestWithExpiredJwt() throws Exception {
+                UserDetails userDetails =
+                org.springframework.security.core.userdetails.User
+                        .withUsername("expired-token@example.com")
+                        .password("test-password")
+                        .roles("CUSTOMER")
+                        .build();
+
+        String expiredToken = Jwts.builder()
+                .subject(userDetails.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis() - 120_000))
+                .expiration(new Date(System.currentTimeMillis() - 60_000))
+                .signWith(getSigningKey())
+                .compact();
+
+        mockMvc.perform(
+                get("/api/reservations")
+                        .header(
+                                HttpHeaders.AUTHORIZATION,
+                                "Bearer " + expiredToken
+                        )
+        ).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+     void inactiveUserCannotAccessProtectedEndpointWithExistingToken()
+                throws Exception {
+        String email = "deactivated-user@example.com";
+        String token = createTestUserAndGetToken(email, Role.CUSTOMER);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow();
+
+        user.setActive(false);
+        userRepository.save(user);
+
+        mockMvc.perform(
+                get("/api/reservations")
+                        .header(
+                                HttpHeaders.AUTHORIZATION,
+                                "Bearer " + token
+                        )
+        ).andExpect(status().isUnauthorized());
+   }
+
+
+
+
+
     private String createTestUserAndGetToken(String email, Role role) {
 
         User user = userRepository.findByEmail(email)
@@ -657,5 +731,11 @@ class SecurityIntegrationTest {
                         .build();
 
         return jwtService.generateToken(userDetails);
+    }
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(
+                Decoders.BASE64.decode(secret)
+        );
     }
 }
