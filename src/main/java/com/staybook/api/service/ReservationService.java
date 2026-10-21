@@ -200,7 +200,15 @@ public class ReservationService {
         }
 
         if (reservation.getType() == ReservationType.EVENT) {
-                Event event = reservation.getEvent();
+        Event event = eventRepository.findByIdForUpdate(
+                reservation.getEvent().getId()
+        ).orElseThrow(() ->
+                new ResourceNotFoundException(
+                        "Event not found with id: "
+                                + reservation.getEvent().getId()
+                )
+        );
+
                 event.setAvailableSeats(event.getAvailableSeats() + 1);
         }
 

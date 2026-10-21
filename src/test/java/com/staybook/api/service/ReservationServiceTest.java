@@ -742,10 +742,13 @@ class ReservationServiceTest {
                 .build();
 
         when(userRepository.findByEmail("john@example.com"))
-                .thenReturn(Optional.of(user));
+        .thenReturn(Optional.of(user));
 
         when(reservationRepository.findByIdForUpdate(reservationId))
                 .thenReturn(Optional.of(reservation));
+
+        when(eventRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(event));
 
         when(reservationRepository.save(reservation))
                 .thenReturn(reservation);
@@ -758,6 +761,8 @@ class ReservationServiceTest {
                 .isEqualTo(ReservationStatus.CANCELLED);
         assertThat(event.getAvailableSeats()).isEqualTo(10);
 
+
+        verify(eventRepository).findByIdForUpdate(1L);
         verify(reservationRepository).save(reservation);
      }
 
