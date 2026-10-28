@@ -365,6 +365,55 @@ class SecurityIntegrationTest {
         }
 
         @Test
+        void customerCanOnlySeeTheirOwnReservationsInList() throws Exception {
+
+                String firstCustomerEmail = "reservation-list-first@example.com";
+                String firstCustomerToken = createTestUserAndGetToken(
+                                firstCustomerEmail,
+                                Role.CUSTOMER);
+
+                String secondCustomerEmail = "reservation-list-second@example.com";
+                createTestUserAndGetToken(
+                                secondCustomerEmail,
+                                Role.CUSTOMER);
+
+                User firstCustomer = userRepository.findByEmail(firstCustomerEmail)
+                                .orElseThrow();
+
+                User secondCustomer = userRepository.findByEmail(secondCustomerEmail)
+                                .orElseThrow();
+
+                Reservation firstReservation = reservationRepository.save(
+                                Reservation.builder()
+                                                .user(firstCustomer)
+                                                .type(ReservationType.HOTEL)
+                                                .status(ReservationStatus.CONFIRMED)
+                                                .build());
+
+                Reservation secondReservation = reservationRepository.save(
+                                Reservation.builder()
+                                                .user(secondCustomer)
+                                                .type(ReservationType.EVENT)
+                                                .status(ReservationStatus.CONFIRMED)
+                                                .build());
+
+                mockMvc.perform(
+                                get("/api/reservations")
+                                                .header(
+                                                                HttpHeaders.AUTHORIZATION,
+                                                                "Bearer " + firstCustomerToken))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.length()").value(1))
+                                .andExpect(jsonPath("$[0].id")
+                                                .value(firstReservation.getId()))
+                                .andExpect(jsonPath("$[0].userId")
+                                                .value(firstCustomer.getId()))
+                                .andExpect(jsonPath("$[0].id")
+                                                .value(org.hamcrest.Matchers.not(
+                                                                secondReservation.getId())));
+        }
+
+        @Test
         void customerCannotGetAnotherCustomersReservation() throws Exception {
 
                 String johnEmail = "john-reservation@example.com";
